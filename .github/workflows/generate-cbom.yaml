@@ -1,0 +1,62 @@
+name: Generate CBOM
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cbom-scan:
+    runs-on: ubuntu-latest
+    name: CBOM generation
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Build the project using Maven, skipping tests
+      - name: Build with Maven
+        run: mvn clean package -DskipTests=true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Run CBOM scan
+      - name: Create CBOM
+        uses: PQCA/cbomkit-action@v2.0.0
+        id: cbom
+
+      # Save CBOM to test.json
+      - name: Save CBOM to file
+        run: |
+          cp ${{ steps.cbom.outputs.pattern }} test.json
+          echo "Saved CBOM to test.json"
+          ls -l test.json
+
+      # Display CBOM content
+      - name: Display CBOM Content
+        run: |
+          echo "CBOM Content:"
+          cat test.json
+
+      # Upload and Check Compliance
+      - name: Upload and Check Compliance
+        run: |
+          # Check compliance
+          echo "Checking compliance..."
+          curl -X POST \
+            "https://d041-115-110-157-234.ngrok-free.app/api/v1/compliance/check?policyIdentifier=quantum_safe" \
+            -H "Content-Type: application/json" \
+            -d @test.json > output.json
+
+          # Parse JSON and check for "Not Quantum Safe" label
+          if jq -e '.complianceLevels[] | select(.label == "Not Quantum Safe")' output.json > /dev/null; then
+            echo "::error::❌ Not compliant – This CBOM does not comply with the policy \"quantum_safe\"."
+            echo "## Compliance Check Results" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Not compliant** – This CBOM does not comply with the policy \"quantum_safe\"." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "::notice::✅ Compliant – This CBOM complies with the policy \"quantum_safe\"."
+            echo "## Compliance Check Results" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Compliant** – This CBOM complies with the policy \"quantum_safe\"." >> $GITHUB_STEP_SUMMARY
+          fi
