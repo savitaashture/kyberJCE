@@ -50,7 +50,7 @@ jobs:
             -d @test.json > output.json
 
           # Parse JSON and check for "Not Quantum Safe" label
-          if jq -e '.complianceLevels[] | select(.label == "Not Quantum Safe")' output.json > /dev/null; then
+          if jq -e '.globalComplianceStatus == false' output.json > /dev/null; then
             echo "::error::❌ Not compliant – This CBOM does not comply with the policy \"quantum_safe\"."
             echo "## Compliance Check Results" >> $GITHUB_STEP_SUMMARY
             echo "❌ **Not compliant** – This CBOM does not comply with the policy \"quantum_safe\"." >> $GITHUB_STEP_SUMMARY
