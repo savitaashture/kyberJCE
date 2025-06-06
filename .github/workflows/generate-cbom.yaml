@@ -49,7 +49,7 @@ jobs:
           # Check compliance
           echo "Checking compliance..."
           curl -X POST \
-            "https://d041-115-110-157-234.ngrok-free.app/api/v1/compliance/check?policyIdentifier=quantum_safe" \
+            "https://b731-2406-7400-61-e4da-f2c5-5d7e-a17f-35b1.ngrok-free.app/api/v1/compliance/check?policyIdentifier=quantum_safe" \
             -H "Content-Type: application/json" \
             -d @test.json > output.json
 
